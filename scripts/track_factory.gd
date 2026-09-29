@@ -249,7 +249,7 @@ static func build_track(parent: Node3D, track_id: String) -> Dictionary:
 		bounds_min = bounds_min.min(point)
 		bounds_max = bounds_max.max(point)
 	var bounds_center := (bounds_min + bounds_max) * 0.5
-	var ground_size := maxf(bounds_max.x - bounds_min.x, bounds_max.z - bounds_min.z) + 620.0
+	var ground_size := maxf(bounds_max.x - bounds_min.x, bounds_max.z - bounds_min.z) + 900.0
 	var ground_mesh := PlaneMesh.new()
 	ground_mesh.size = Vector2(ground_size, ground_size)
 	ground_mesh.subdivide_width = 24
@@ -813,8 +813,8 @@ static func get_shortcut_specs(track_id: String) -> Array[Dictionary]:
 					"start": 0.17,
 					"end": 0.31,
 					"side": -1.0,
-					"offset": 27.0,
-					"width": 4.2,
+					"span": 82.0,
+					"width": 4.8,
 				},
 			]
 		"snow":
@@ -823,8 +823,8 @@ static func get_shortcut_specs(track_id: String) -> Array[Dictionary]:
 					"start": 0.22,
 					"end": 0.39,
 					"side": 1.0,
-					"offset": 42.0,
-					"width": 4.8,
+					"span": 148.0,
+					"width": 5.4,
 				},
 			]
 		_:
@@ -833,15 +833,15 @@ static func get_shortcut_specs(track_id: String) -> Array[Dictionary]:
 					"start": 0.39,
 					"end": 0.53,
 					"side": -1.0,
-					"offset": 38.0,
-					"width": 5.6,
+					"span": 168.0,
+					"width": 6.2,
 				},
 				{
 					"start": 0.72,
 					"end": 0.84,
 					"side": 1.0,
-					"offset": 31.0,
-					"width": 5.2,
+					"span": 138.0,
+					"width": 5.8,
 				},
 			]
 
@@ -876,31 +876,62 @@ static func build_shortcut(
 	var side_direction: float = spec["side"]
 	var start_side := Vector3.UP.cross(start_tangent).normalized()
 	var finish_side := Vector3.UP.cross(finish_tangent).normalized()
-	var offset: float = spec["offset"]
-	var entry_offset := active_half_width + 0.42
-	var p0 := start + start_tangent * 2.0 + start_side * side_direction * entry_offset
-	var p1 := start.lerp(finish, 0.34) + start_side * side_direction * offset
-	var p2 := start.lerp(finish, 0.68) + finish_side * side_direction * offset * 0.78
-	var p3 := finish - finish_tangent * 2.0 + finish_side * side_direction * entry_offset
-	p0.y += 0.18
-	p3.y += 0.18
-	p1.y = maxf(p0.y, start.lerp(finish, 0.34).y) + 3.2
-	p2.y = maxf(finish.y, start.lerp(finish, 0.68).y) + 2.4
+	var track_center := Vector3.ZERO
+	for sample in samples:
+		track_center += sample
+	track_center /= float(samples.size())
+	track_center.y = 0.0
+	var segment_midpoint := (start + finish) * 0.5
+	var outward := Vector3(
+		segment_midpoint.x - track_center.x,
+		0.0,
+		segment_midpoint.z - track_center.z
+	)
+	if outward.length_squared() < 0.01:
+		outward = start_side * side_direction
+	outward = outward.normalized()
+	var start_outward := Vector3(start.x - track_center.x, 0.0, start.z - track_center.z)
+	var finish_outward := Vector3(finish.x - track_center.x, 0.0, finish.z - track_center.z)
+	if start_outward.length_squared() < 0.01:
+		start_outward = start_side * side_direction
+	if finish_outward.length_squared() < 0.01:
+		finish_outward = finish_side * side_direction
+	start_outward = start_outward.normalized()
+	finish_outward = finish_outward.normalized()
+	var entry_offset := active_half_width + 0.36
+	var p0 := start + start_outward * entry_offset
+	var p3 := finish + finish_outward * entry_offset
+	p0.y += 0.16
+	p3.y += 0.16
+	var width: float = spec["width"]
+	var span: float = spec["span"]
+	var p1 := Vector3.ZERO
+	var p2 := Vector3.ZERO
 	var curve := Curve3D.new()
-	for point in [p0, p1, p2, p3]:
-		curve.add_point(point)
-	curve.bake_interval = 0.5
 	var shortcut_samples := PackedVector3Array()
 	var shortcut_tangents := PackedVector3Array()
-	var shortcut_length := curve.get_baked_length()
-	var surface_samples := 42
-	for sample_index in surface_samples:
-		var offset_distance := shortcut_length * float(sample_index) / float(surface_samples - 1)
-		shortcut_samples.append(curve.sample_baked(offset_distance, true))
-		var ahead := curve.sample_baked(minf(offset_distance + 0.8, shortcut_length), true)
-		var behind := curve.sample_baked(maxf(offset_distance - 0.8, 0.0), true)
-		shortcut_tangents.append((ahead - behind).normalized())
-	var width: float = spec["width"]
+	var surface_samples := 72
+	for attempt in 6:
+		var expansion := 1.0 + float(attempt) * 0.18
+		p1 = start.lerp(finish, 0.26) + outward * span * 0.82 * expansion + start_tangent * 10.0
+		p2 = start.lerp(finish, 0.74) + outward * span * expansion - finish_tangent * 10.0
+		p1.y = maxf(p0.y, start.lerp(finish, 0.26).y) + 2.5
+		p2.y = maxf(finish.y, start.lerp(finish, 0.74).y) + 2.1
+		curve = Curve3D.new()
+		for point in [p0, p1, p2, p3]:
+			curve.add_point(point)
+		curve.bake_interval = 0.5
+		shortcut_samples.clear()
+		shortcut_tangents.clear()
+		var shortcut_length := curve.get_baked_length()
+		for sample_index in surface_samples:
+			var offset_distance := shortcut_length * float(sample_index) / float(surface_samples - 1)
+			shortcut_samples.append(curve.sample_baked(offset_distance, true))
+			var ahead := curve.sample_baked(minf(offset_distance + 0.8, shortcut_length), true)
+			var behind := curve.sample_baked(maxf(offset_distance - 0.8, 0.0), true)
+			shortcut_tangents.append((ahead - behind).normalized())
+		if _shortcut_has_clearance(shortcut_samples, samples, active_half_width + width + 7.0):
+			break
 	var material := make_shortcut_material(track_id)
 	var foundation_material := CarFactory.make_material(Color("#151a20"), 0.55, 0.32)
 	var foundation := MeshInstance3D.new()
@@ -929,7 +960,7 @@ static func build_shortcut(
 		)
 		rail.material_override = rail_material
 		parent.add_child(rail)
-	for support_index in range(9, shortcut_samples.size() - 8, 9):
+	for support_index in range(12, shortcut_samples.size() - 10, 10):
 		var support_position := shortcut_samples[support_index]
 		var support_height := maxf(1.0, support_position.y)
 		CarFactory.add_box(
@@ -956,7 +987,27 @@ static func build_shortcut(
 		"samples": shortcut_samples,
 		"tangents": shortcut_tangents,
 		"width": width,
+		"length": curve.get_baked_length(),
 	}
+
+
+static func _shortcut_has_clearance(
+		shortcut_samples: PackedVector3Array,
+		track_samples: PackedVector3Array,
+		minimum_distance: float
+	) -> bool:
+	var threshold_squared := minimum_distance * minimum_distance
+	for shortcut_index in range(4, shortcut_samples.size() - 4):
+		var shortcut_point := shortcut_samples[shortcut_index]
+		for track_index in range(0, track_samples.size(), 3):
+			var track_point := track_samples[track_index]
+			var horizontal_distance := Vector2(
+				shortcut_point.x - track_point.x,
+				shortcut_point.z - track_point.z
+			).length_squared()
+			if horizontal_distance < threshold_squared:
+				return false
+	return true
 
 
 static func create_open_guardrail_ribbon(
