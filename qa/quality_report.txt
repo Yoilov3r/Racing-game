@@ -1,0 +1,4 @@
+track	meshes	instances	lights	particles	fps_avg	camera_far	shadow_distance	light_budget	texture_limit	shortcuts	min_clearance	violations
+neon	1924	1920	24	4	91.9	420	190	48	1024	1	18.3	0
+snow	1327	1327	6	4	85.4	520	300	20	1024	1	21.4	0
+loop	2654	2601	4	3	100.0	460	235	18	1024	2	22.6	0

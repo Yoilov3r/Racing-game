@@ -1,0 +1,18 @@
+AUDIO routing=RaceEngine,RaceTires,RaceFx,RaceAmbience,RaceUI
+AUDIO transitions=exponential fade stop_threshold=-52.0dB clipping_check=sample_peak
+[1280x800] menu_bounds=overflow=0 overlap=false
+[1280x800] audio_menu=layers=[] transitions=0 events=3 fade=exponential abrupt_stops=0 clip=false
+[1280x800] countdown_bounds=overflow=0 overlap=false
+[1280x800] race_bounds=overflow=0 overlap=false
+[1280x800] audio_race=layers=["engine_low", "engine_mid", "engine_high", "tire_friction", "drift", "nitro", "ambient"] transitions=1 events=6 fade=exponential abrupt_stops=0 clip=false
+[1280x800] pause_bounds=overflow=0 overlap=false
+[1280x800] finish_bounds=overflow=0 overlap=false
+[1280x800] audio_after_exit=layers=[] transitions=2 events=9 fade=exponential abrupt_stops=0 clip=false
+[1920x1080] menu_bounds=overflow=0 overlap=false
+[1920x1080] audio_menu=layers=[] transitions=0 events=3 fade=exponential abrupt_stops=0 clip=false
+[1920x1080] countdown_bounds=overflow=0 overlap=false
+[1920x1080] race_bounds=overflow=0 overlap=false
+[1920x1080] audio_race=layers=["engine_low", "engine_mid", "engine_high", "tire_friction", "drift", "nitro", "ambient"] transitions=1 events=6 fade=exponential abrupt_stops=0 clip=false
+[1920x1080] pause_bounds=overflow=0 overlap=false
+[1920x1080] finish_bounds=overflow=0 overlap=false
+[1920x1080] audio_after_exit=layers=[] transitions=2 events=9 fade=exponential abrupt_stops=0 clip=false

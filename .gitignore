@@ -1,0 +1,16 @@
+.godot/
+*.exe
+*.pck
+*.zip
+*.png.import
+visual_test.png
+preview_capture.png
+*_audit_*.png
+layout_audit_*.png
+track_audit_*.png
+menu_audit.png
+showroom_audit.png
+visual_audit_*.png
+qa/*.png
+qa/*_stdout.txt
+qa/*_stderr.txt
